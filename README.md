@@ -1,0 +1,242 @@
+# .github.io/*
+Legend - Legacy (Single-file React component)
+Drop this into a React app (Create React App / Vite). Requires Tailwind CSS set up.
+Features:
+- Responsive desktop + mobile layout
+- Category tabs (All / Cars / Bikes)
+- Search & filter by make/model/year (simple client-side)
+- Responsive masonry-like grid (CSS grid)
+- Lightbox modal with download button
+- Lazy loading images, infinite-scroll-like "Load more"
+- Sample data uses Unsplash random queries as placeholders
+
+How to use:
+1. Ensure Tailwind is configured in your project.
+2. Save this file (e.g. LegendLegacyApp.jsx) and import into your App.
+3. npm start / yarn dev
+
+NOTE: Replace placeholder image URLs and sampleData with your own wallpaper images and metadata.
+*/
+
+import React, { useState, useMemo, useEffect } from "react";
+
+const sampleData = Array.from({ length: 28 }).map((_, i) => {
+  // Alternate car and bike images as placeholders
+  const isBike = i % 2 === 0;
+  const q = isBike ? "motorbike" : "car";
+  return {
+    id: i + 1,
+    title: isBike ? `Legend Bike ${i + 1}` : `Legend Car ${i + 1}`,
+    type: isBike ? "bike" : "car",
+    // unsplash featured endpoints — swap to your CDN for production
+    url: `https://source.unsplash.com/collection/190727/1600x900?${q}&sig=${i}`,
+    thumb: `https://source.unsplash.com/collection/190727/800x600?${q}&sig=${i}`,
+    make: isBike ? `MakeB${(i % 5) + 1}` : `MakeC${(i % 6) + 1}`,
+    year: 2015 + (i % 10),
+  };
+});
+
+export default function LegendLegacyApp() {
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("all");
+  const [visibleCount, setVisibleCount] = useState(12);
+  const [lightbox, setLightbox] = useState({ open: false, item: null });
+  const [data] = useState(sampleData);
+
+  // Filtered & searched
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return data
+      .filter((it) => category === "all" || it.type === category)
+      .filter((it) =>
+        !q || `${it.title} ${it.make} ${it.year}`.toLowerCase().includes(q)
+      );
+  }, [data, category, query]);
+
+  // visible slice for "load more"
+  const visible = filtered.slice(0, visibleCount);
+
+  useEffect(() => {
+    // reset visible when filters change
+    setVisibleCount(12);
+  }, [category, query]);
+
+  function openLightbox(item) {
+    setLightbox({ open: true, item });
+  }
+  function closeLightbox() {
+    setLightbox({ open: false, item: null });
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 text-gray-900">
+      {/* Header */}
+      <header className="bg-white shadow-sm sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-4">
+              <div className="text-2xl font-extrabold tracking-tight">
+                <span className="text-indigo-600">Legend</span>
+                <span className="ml-1 text-gray-700">-Legacy</span>
+              </div>
+              <nav className="hidden md:flex gap-3 text-sm text-gray-600">
+                <button className="py-2 px-3 rounded-md hover:bg-gray-100">Home</button>
+                <button className="py-2 px-3 rounded-md hover:bg-gray-100">Collections</button>
+                <button className="py-2 px-3 rounded-md hover:bg-gray-100">About</button>
+              </nav>
+            </div>
+
+            <div className="flex-1 mx-4">
+              <div className="relative">
+                <input
+                  aria-label="Search wallpapers"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search by make, model, year..."
+                  className="block w-full rounded-full border border-gray-200 bg-white py-2 pl-4 pr-10 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                />
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
+                  🔍
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button className="hidden sm:inline-flex items-center gap-2 bg-indigo-600 text-white py-2 px-3 rounded-md text-sm">Upload</button>
+              <button className="p-2 rounded-md bg-gray-100 hover:bg-gray-200 md:hidden">☰</button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Controls */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="flex flex-col md:flex-row gap-4 md:items-center md:justify-between">
+          <div className="flex items-center gap-2 overflow-auto">
+            {[
+              { key: "all", label: "All" },
+              { key: "car", label: "Cars" },
+              { key: "bike", label: "Bikes" },
+            ].map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setCategory(t.key)}
+                className={`whitespace-nowrap py-2 px-3 rounded-md text-sm font-medium ${
+                  category === t.key ? "bg-indigo-600 text-white" : "bg-white border"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="text-sm text-gray-600">Showing {visible.length} of {filtered.length}</div>
+            <select
+              aria-label="Sort"
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "new") {
+                  // Quick demo: sort by year desc
+                  // In production implement a proper stateful sort
+                }
+              }}
+              className="text-sm border rounded-md p-2 bg-white"
+            >
+              <option value="relevance">Sort: Relevance</option>
+              <option value="new">Sort: Newest</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Gallery grid */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+        {visible.length === 0 ? (
+          <div className="py-20 text-center text-gray-500">No wallpapers found.</div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {visible.map((it) => (
+              <article key={it.id} className="rounded-lg overflow-hidden bg-white shadow-sm">
+                <button
+                  onClick={() => openLightbox(it)}
+                  className="group block w-full text-left"
+                >
+                  <div className="relative w-full h-40 sm:h-44 md:h-36 lg:h-44 overflow-hidden bg-gray-100">
+                    <img
+                      loading="lazy"
+                      src={it.thumb}
+                      alt={it.title}
+                      className="w-full h-full object-cover transform group-hover:scale-105 transition duration-300"
+                    />
+                    <div className="absolute left-2 bottom-2 bg-black bg-opacity-40 text-white text-xs px-2 py-1 rounded">{it.make} • {it.year}</div>
+                  </div>
+                  <div className="p-3">
+                    <h3 className="text-sm font-medium truncate">{it.title}</h3>
+                    <p className="text-xs text-gray-500">{it.type.toUpperCase()}</p>
+                  </div>
+                </button>
+              </article>
+            ))}
+          </div>
+        )}
+
+        {/* Load more */}
+        {visibleCount < filtered.length && (
+          <div className="mt-8 text-center">
+            <button
+              onClick={() => setVisibleCount((s) => s + 12)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md"
+            >
+              Load more
+            </button>
+          </div>
+        )}
+      </main>
+
+      {/* Footer */}
+      <footer className="bg-white border-t">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-sm text-gray-600 flex flex-col md:flex-row md:justify-between gap-4">
+          <div>
+            © {new Date().getFullYear()} Legend-Legacy — High-resolution car & bike wallpapers.
+          </div>
+          <div className="flex gap-4">
+            <a href="#" className="hover:underline">Terms</a>
+            <a href="#" className="hover:underline">Privacy</a>
+            <a href="#" className="hover:underline">Contact</a>
+          </div>
+        </div>
+      </footer>
+
+      {/* Lightbox modal */}
+      {lightbox.open && lightbox.item && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 p-4"
+          onClick={closeLightbox}
+        >
+          <div className="max-w-5xl w-full bg-white rounded-md overflow-hidden shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between p-3 border-b">
+              <div>
+                <h2 className="text-lg font-semibold">{lightbox.item.title}</h2>
+                <p className="text-sm text-gray-500">{lightbox.item.make} • {lightbox.item.year} • {lightbox.item.type}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <a href={lightbox.item.url} target="_blank" rel="noreferrer" download className="inline-flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-md text-sm">Download</a>
+                <button onClick={closeLightbox} className="text-gray-600 p-2 rounded-md hover:bg-gray-100">✕</button>
+              </div>
+            </div>
+
+            <div className="w-full bg-black/90 flex items-center justify-center">
+              <img src={lightbox.item.url} alt={lightbox.item.title} className="w-full h-[60vh] object-contain" />
+            </div>
+
+            <div className="p-4 text-sm text-gray-600">
+              <div>Resolution: High</div>
+              <div>License: Replace with your own license text for wallpapers</div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
